@@ -17,6 +17,7 @@
   var WX_MAX_AGE_MS = 6 * 3600000;    // hide weather older than this
   var SELF_ID = 'com.cleanframe.home';
   var AMBIENT_CHOICES = [0, 2, 5, 10, 15, 30];
+  var HDMI_PORTS = 3; // the 43UK6200 has HDMI 1-3
 
   var cfg = window.CLEANFRAME_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
@@ -27,6 +28,7 @@
   var prefs = {
     clock24: saved.clock24 !== undefined ? saved.clock24 : cfg.defaults.clock24,
     ambientMinutes: saved.ambientMinutes !== undefined ? saved.ambientMinutes : cfg.defaults.ambientMinutes,
+    googleTvPort: saved.googleTvPort || cfg.defaults.googleTvPort || 1,
     weatherOn: saved.weatherOn !== undefined ? saved.weatherOn : true,
     units: saved.units || (cfg.weather && cfg.weather.units) || 'c',
     place: saved.place || (cfg.weather && cfg.weather.place) || null
@@ -52,6 +54,7 @@
         hidden: hidden,
         clock24: prefs.clock24,
         ambientMinutes: prefs.ambientMinutes,
+        googleTvPort: prefs.googleTvPort,
         weatherOn: prefs.weatherOn,
         units: prefs.units,
         place: prefs.place
@@ -62,7 +65,7 @@
   function buildAppList(defs, s) {
     var byId = {};
     var list = defs.map(function (d) {
-      var a = { id: d.id, name: d.name, color: d.color || '#555', icon: null, show: d.show !== false, installed: true };
+      var a = { id: d.id, name: d.name, color: d.color || '#555', icon: null, show: d.show !== false, installed: true, hdmi: !!d.hdmi };
       byId[a.id] = a;
       return a;
     });
@@ -94,7 +97,7 @@
         known[a.id] = true;
         var lp = installed[a.id];
         // Inputs and Live TV are not always listed as launch points.
-        a.installed = !!lp || a.id.indexOf('com.webos.app.') === 0 || a.id === 'com.palm.app.settings';
+        a.installed = !!lp || a.hdmi || a.id.indexOf('com.webos.app.') === 0 || a.id === 'com.palm.app.settings';
         if (lp && lp.icon) a.icon = lp.icon;
       });
       var order = (saved.order || []);
@@ -329,8 +332,13 @@
 
   function launchApp(a) {
     toast('Opening ' + a.name + '…');
-    Luna.launch(a.id, function (res) {
-      if (!res.returnValue) toast(a.name + ' could not be opened. Is it installed?');
+    // Devices on an HDMI port (Google TV) open by switching to that input.
+    var id = a.hdmi ? 'com.webos.app.hdmi' + prefs.googleTvPort : a.id;
+    Luna.launch(id, function (res) {
+      if (!res.returnValue) {
+        toast(a.hdmi ? 'Could not switch to HDMI ' + prefs.googleTvPort
+                     : a.name + ' could not be opened. Is it installed?');
+      }
     });
   }
 
@@ -384,6 +392,10 @@
       { label: 'Location', buttons: [{ text: prefs.place ? prefs.place.name : 'Set location', act: openSearch }] },
       { label: 'Temperature', buttons: [{ text: prefs.units === 'f' ? '°F' : '°C', act: function () {
         prefs.units = prefs.units === 'f' ? 'c' : 'f'; renderWeather();
+      } }] },
+      { head: 'Google TV' },
+      { label: 'Plugged into', buttons: [{ text: 'HDMI ' + prefs.googleTvPort, act: function () {
+        prefs.googleTvPort = prefs.googleTvPort % HDMI_PORTS + 1;
       } }] },
       { head: 'Apps on the home row' }
     ];

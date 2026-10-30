@@ -14,6 +14,10 @@ var CLEANFRAME_CONFIG = {
   // Settings without putting it on the home row.
   apps: [
     { id: 'com.webos.app.livetv',       name: 'Live TV',      color: '#3d7bd9', show: true  },
+    // A Chromecast with Google TV / Google TV Streamer plugged into an HDMI
+    // port. The tile switches to that input; pick the port on the TV under
+    // RED > Google TV, or set googleTvPort below.
+    { id: 'googletv',                   name: 'Google TV',    color: '#4285f4', show: true, hdmi: true },
     { id: 'netflix',                    name: 'Netflix',      color: '#c8202a', show: true  },
     { id: 'youtube.leanback.v4',        name: 'YouTube',      color: '#d93025', show: true  },
     { id: 'amazon',                     name: 'Prime Video',  color: '#1f9bd1', show: true  },
@@ -48,6 +52,7 @@ var CLEANFRAME_CONFIG = {
   defaults: {
     clock24: true,       // false = 12-hour clock
     ambientMinutes: 5,   // idle minutes before only the picture + clock remain; 0 = never
+    googleTvPort: 2,     // HDMI port your Google TV device is plugged into (1-3 on the 43UK6200)
     photoMinutes: 10     // how long each photo stays up
   }
 };

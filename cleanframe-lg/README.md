@@ -17,6 +17,8 @@ build step.
   shows instantly when you turn the TV on.
 - **One row of app tiles.** Pick the apps, inputs (HDMI 1–3) and Live TV you
   use, and set their order.
+- **A Google TV tile.** If you have a Chromecast with Google TV or a Google TV
+  Streamer plugged into the TV, this tile switches straight to it.
 - **A calm background.** By default it's a painted landscape that changes
   with the time of day (dawn, day, dusk, night with stars). You can use your
   own photos instead.
@@ -49,7 +51,7 @@ Plan for about 20 minutes the first time. You need:
 Download this file and save it somewhere easy to find, such as your
 Downloads folder:
 
-**https://github.com/SteventenCate/FullStackCourse/raw/claude/cleanframe-lg-tv-kuskfq/cleanframe-lg/dist/com.cleanframe.home_1.1.0_all.ipk**
+**https://github.com/SteventenCate/FullStackCourse/raw/claude/cleanframe-lg-tv-kuskfq/cleanframe-lg/dist/com.cleanframe.home_1.2.0_all.ipk**
 
 (It's also in this repository under `cleanframe-lg/dist/`.)
 
@@ -113,7 +115,7 @@ Use **Option A** unless you're comfortable with a terminal.
 3. Install and start CleanFrame:
 
    ```sh
-   ares-install --device tv Downloads/com.cleanframe.home_1.1.0_all.ipk
+   ares-install --device tv Downloads/com.cleanframe.home_1.2.0_all.ipk
    ares-launch  --device tv com.cleanframe.home
    ```
 
@@ -134,7 +136,34 @@ Also under the **WEATHER** heading in Settings:
 - **Weather: Shown / Hidden** turns the whole weather block on or off.
 - **Temperature: °C / °F** switches units.
 
-## Step 6: Choose your apps (on the TV)
+## Step 6: Connect the Google TV tile (on the TV)
+
+Google TV is Android-based and can't run as an app on LG's webOS. What
+CleanFrame does instead is jump straight to the HDMI input where your
+**Chromecast with Google TV** or **Google TV Streamer** is plugged in.
+
+1. Check which HDMI port the Google TV device uses. The ports are labelled
+   **HDMI 1, 2, 3** on the back or side of the TV.
+2. In CleanFrame, press **RED**, then press **▼** until **GOOGLE TV → Plugged
+   into** is highlighted.
+3. Press **OK** until it shows the right port (HDMI 1 → 2 → 3). It starts at
+   **HDMI 2**.
+4. Press **BACK**. Selecting the **Google TV** tile now switches to that
+   input.
+
+Tips:
+
+- Turn on **SIMPLINK (HDMI-CEC)** on the LG TV (**Settings → All Settings →
+  General → SIMPLINK**) and **HDMI-CEC** on the Google TV device (**Settings →
+  System → Inputs** or **Display & Sound**). The Google TV device then wakes
+  up when you switch to it. Getting back to CleanFrame is the remote's
+  **Home** button, then CleanFrame.
+- Don't have a Google TV device? Hide the tile: in Settings, press **OK** on
+  **Shown** next to **Google TV**.
+- You probably don't need the separate **HDMI** tile for the same port. Hide
+  it the same way.
+
+## Step 7: Choose your apps (on the TV)
 
 In the same Settings panel (RED button), under **APPS ON THE HOME ROW**:
 
@@ -142,7 +171,7 @@ In the same Settings panel (RED button), under **APPS ON THE HOME ROW**:
 - Use **▲ / ▼** next to an app to move it left or right on the home row.
 - Press **BACK** when you're done. Everything is saved on the TV.
 
-## Step 7: Put CleanFrame first in the LG app bar
+## Step 8: Put CleanFrame first in the LG app bar
 
 1. Press **Home** so the LG app bar appears at the bottom.
 2. Highlight **CleanFrame** and **press and hold OK** until the tile lifts
@@ -151,7 +180,7 @@ In the same Settings panel (RED button), under **APPS ON THE HOME ROW**:
 
 Now CleanFrame is always the first thing after the Home button.
 
-## Step 8: Keep Developer Mode alive (important)
+## Step 9: Keep Developer Mode alive (important)
 
 LG's Developer Mode **runs out after 50 hours**. When it expires, the TV
 **removes CleanFrame**.
@@ -173,13 +202,14 @@ LG's Developer Mode **runs out after 50 hours**. When it expires, the TV
 | "Weather unavailable right now" | Check that the TV is online (does YouTube play?). CleanFrame tries again every few minutes and whenever you return to it. It also falls back automatically to a plain connection if the TV's older security certificates block the secure one. |
 | No places are found | Check the spelling, or try a nearby bigger town. |
 | The on-screen keyboard didn't appear | Press **OK** on the text box, or click it with the Magic Remote pointer. |
+| The Google TV tile shows a black screen or "No signal" | The port in Settings → Google TV doesn't match where the device is plugged in, or the device is off. Check the port and that its light is on. |
 | "… could not be opened. Is it installed?" | That app isn't installed on your TV. Hide it in Settings, or install it from the LG Content Store. |
-| CleanFrame disappeared from the TV | Developer Mode expired. See Step 8, then reinstall with Step 4. |
+| CleanFrame disappeared from the TV | Developer Mode expired. See Step 9, then reinstall with Step 4. |
 
 ## Can it replace LG's Home screen?
 
 **Not on a stock TV.** webOS doesn't let third-party apps replace the
-launcher or start themselves when the TV turns on. Step 7 (first in the app
+launcher or start themselves when the TV turns on. Step 8 (first in the app
 bar) is the closest you can get.
 
 If your TV is **rooted** with the Homebrew Channel, you can make CleanFrame
@@ -214,14 +244,14 @@ Everything lives in `app/js/config.js`:
 - **`photos`**: put JPGs in `app/photos/`, list them here as
   `'photos/name.jpg'`, and they replace the painted landscape. Keep them
   around 1920×1080.
-- **`defaults`**: the clock format and picture-only delay used on first
-  launch.
+- **`defaults`**: the clock format, picture-only delay and Google TV HDMI port
+  (`googleTvPort`) used on first launch.
 
 After editing, rebuild and reinstall:
 
 ```sh
 ares-package cleanframe-lg/app -o cleanframe-lg/dist
-ares-install --device tv cleanframe-lg/dist/com.cleanframe.home_1.1.0_all.ipk
+ares-install --device tv cleanframe-lg/dist/com.cleanframe.home_1.2.0_all.ipk
 ```
 
 ### Try it on a computer
