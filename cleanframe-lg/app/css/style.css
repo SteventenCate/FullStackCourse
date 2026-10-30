@@ -226,3 +226,67 @@ body.settings-open #gear { opacity: 0; }
   pointer-events: none;
 }
 #toast.show { opacity: 1; transform: translate3d(-50%, 0, 0); }
+
+/* ---------- Weather ---------- */
+
+#top-right { display: flex; align-items: flex-start; }
+#gear { margin-left: 48px; }
+
+#weather {
+  text-align: right;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.35);
+  transition: opacity .6s ease;
+}
+#weather.hidden { display: none; }
+#wx-now { display: flex; align-items: center; justify-content: flex-end; }
+#wx-icon { width: 84px; height: 84px; margin-right: 18px; }
+#wx-icon svg, .wx-day svg { width: 100%; height: 100%; display: block; }
+#wx-temp { font-size: 96px; font-weight: 200; line-height: 1; }
+#wx-text { margin-top: 12px; font-size: 30px; font-weight: 300; color: var(--ink-dim); }
+#wx-text .place { color: var(--ink); }
+#wx-days { display: flex; justify-content: flex-end; margin-top: 22px; }
+.wx-day {
+  width: 112px;
+  margin-left: 16px;
+  padding: 12px 0 10px;
+  border-radius: 14px;
+  background: var(--glass);
+  text-align: center;
+  font-size: 24px;
+}
+.wx-day .d { color: var(--ink-dim); }
+.wx-day .i { width: 40px; height: 40px; margin: 6px auto; }
+.wx-day .lo { color: var(--ink-dim); margin-left: 6px; }
+.wx-setup { font-size: 26px; color: var(--ink-dim); max-width: 640px; line-height: 1.4; margin-top: 24px; }
+
+body.ambient #wx-days { opacity: 0; }
+
+/* ---------- Location search ---------- */
+
+#search { display: none; flex-direction: column; flex: 1 1 auto; }
+body.searching #search { display: flex; }
+body.searching #settings-list { display: none; }
+.search-help { font-size: 26px; color: var(--ink-dim); margin-bottom: 20px; line-height: 1.4; }
+#search-input {
+  font: inherit;
+  font-size: 34px;
+  height: 80px;
+  padding: 0 24px;
+  border-radius: 14px;
+  border: 3px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.08);
+  color: var(--ink);
+  outline: 0;
+}
+#search-input.focused { border-color: #fff; background: rgba(255,255,255,0.14); }
+#search-results { margin-top: 18px; }
+.result {
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-size: 30px;
+  margin-bottom: 6px;
+}
+.result .detail { font-size: 22px; color: var(--ink-dim); margin-top: 4px; }
+.result.focused { background: #fff; color: #111; }
+.result.focused .detail { color: #555; }
+.result.note { color: var(--ink-dim); }

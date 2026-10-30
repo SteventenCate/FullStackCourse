@@ -12,6 +12,9 @@
     ESC: 27, BACKSPACE: 8, R: 82
   };
   var STORE_KEY = 'cleanframe.v1';
+  var WX_KEY = 'cleanframe.weather';
+  var WX_REFRESH_MS = 30 * 60000;     // fetch new weather this often
+  var WX_MAX_AGE_MS = 6 * 3600000;    // hide weather older than this
   var SELF_ID = 'com.cleanframe.home';
   var AMBIENT_CHOICES = [0, 2, 5, 10, 15, 30];
 
@@ -23,7 +26,10 @@
   var saved = load();
   var prefs = {
     clock24: saved.clock24 !== undefined ? saved.clock24 : cfg.defaults.clock24,
-    ambientMinutes: saved.ambientMinutes !== undefined ? saved.ambientMinutes : cfg.defaults.ambientMinutes
+    ambientMinutes: saved.ambientMinutes !== undefined ? saved.ambientMinutes : cfg.defaults.ambientMinutes,
+    weatherOn: saved.weatherOn !== undefined ? saved.weatherOn : true,
+    units: saved.units || (cfg.weather && cfg.weather.units) || 'c',
+    place: saved.place || (cfg.weather && cfg.weather.place) || null
   };
   var apps = buildAppList(cfg.apps, saved);
 
@@ -45,7 +51,10 @@
         order: apps.map(function (a) { return a.id; }),
         hidden: hidden,
         clock24: prefs.clock24,
-        ambientMinutes: prefs.ambientMinutes
+        ambientMinutes: prefs.ambientMinutes,
+        weatherOn: prefs.weatherOn,
+        units: prefs.units,
+        place: prefs.place
       }));
     } catch (e) { /* storage full or unavailable: settings last this session only */ }
   }
@@ -171,6 +180,92 @@
     showLayer(function (el) { el.style.background = Scenes.background(scene); });
   }
 
+  // ---------- Weather ----------
+
+  var wx = loadWeatherCache();   // { key, data } for the current place
+  var wxFailed = false;
+
+  function placeKey(p) { return p ? p.latitude + ',' + p.longitude : ''; }
+
+  function loadWeatherCache() {
+    try { return JSON.parse(localStorage.getItem(WX_KEY)) || null; } catch (e) { return null; }
+  }
+
+  function refreshWeather(force) {
+    var place = prefs.place;
+    if (!prefs.weatherOn || !place) { renderWeather(); return; }
+    var key = placeKey(place);
+    var fresh = wx && wx.key === key && Date.now() - wx.data.at < WX_REFRESH_MS;
+    if (fresh && !force) { renderWeather(); return; }
+    Weather.forecast(place, function (err, data) {
+      if (placeKey(prefs.place) !== key) return; // place changed while loading
+      wxFailed = !!err;
+      if (!err) {
+        wx = { key: key, data: data };
+        try { localStorage.setItem(WX_KEY, JSON.stringify(wx)); } catch (e) { /* cache is optional */ }
+      }
+      renderWeather();
+    });
+    renderWeather();
+  }
+
+  function weekday(isoDate) {
+    var parts = isoDate.split('-');
+    var d = new Date(+parts[0], +parts[1] - 1, +parts[2], 12);
+    try { return d.toLocaleDateString(navigator.language || 'en-GB', { weekday: 'short' }); } catch (e) { return isoDate.slice(5); }
+  }
+
+  function renderWeather() {
+    var box = $('weather');
+    if (!prefs.weatherOn) { box.className = 'hidden'; return; }
+    box.className = '';
+    var u = prefs.units;
+
+    if (!prefs.place) {
+      $('wx-icon').innerHTML = '';
+      $('wx-temp').innerHTML = '';
+      $('wx-days').innerHTML = '';
+      $('wx-text').innerHTML = '<div class="wx-setup">Press the RED button to set your weather location</div>';
+      return;
+    }
+
+    var ok = wx && wx.key === placeKey(prefs.place) && Date.now() - wx.data.at < WX_MAX_AGE_MS;
+    if (!ok) {
+      $('wx-icon').innerHTML = '';
+      $('wx-temp').innerHTML = '';
+      $('wx-days').innerHTML = '';
+      $('wx-text').innerHTML = wxFailed ? '<div class="wx-setup">Weather unavailable right now</div>' : '';
+      return;
+    }
+
+    var d = wx.data, today = d.days[0];
+    $('wx-icon').innerHTML = Weather.icon(d.code, d.isDay);
+    $('wx-temp').textContent = Weather.temp(d.temp, u);
+
+    var text = $('wx-text');
+    text.innerHTML = '';
+    var place = document.createElement('span');
+    place.className = 'place';
+    place.textContent = prefs.place.name;
+    text.appendChild(place);
+    var bits = [Weather.describe(d.code).text];
+    if (today) bits.push('H ' + Weather.temp(today.max, u) + '  L ' + Weather.temp(today.min, u));
+    text.appendChild(document.createTextNode(' · ' + bits.join(' · ')));
+
+    var days = $('wx-days');
+    days.innerHTML = '';
+    d.days.slice(1, 4).forEach(function (day) {
+      var el = document.createElement('div');
+      el.className = 'wx-day';
+      el.innerHTML = '<div class="d"></div><div class="i">' + Weather.icon(day.code, true) + '</div>' +
+        '<span class="hi"></span><span class="lo"></span>';
+      el.querySelector('.d').textContent = weekday(day.date);
+      el.querySelector('.hi').textContent = Weather.temp(day.max, u);
+      el.querySelector('.lo').textContent = Weather.temp(day.min, u);
+      days.appendChild(el);
+    });
+  }
+
   // ---------- Home row ----------
 
   var PITCH = 236;          // tile width + margin
@@ -282,6 +377,14 @@
         var i = AMBIENT_CHOICES.indexOf(prefs.ambientMinutes);
         prefs.ambientMinutes = AMBIENT_CHOICES[(i + 1) % AMBIENT_CHOICES.length];
       } }] },
+      { head: 'Weather' },
+      { label: 'Weather', buttons: [{ text: prefs.weatherOn ? 'Shown' : 'Hidden', on: prefs.weatherOn, act: function () {
+        prefs.weatherOn = !prefs.weatherOn; refreshWeather(false);
+      } }] },
+      { label: 'Location', buttons: [{ text: prefs.place ? prefs.place.name : 'Set location', act: openSearch }] },
+      { label: 'Temperature', buttons: [{ text: prefs.units === 'f' ? '°F' : '°C', act: function () {
+        prefs.units = prefs.units === 'f' ? 'c' : 'f'; renderWeather();
+      } }] },
       { head: 'Apps on the home row' }
     ];
     apps.forEach(function (a, i) {
@@ -377,7 +480,7 @@
     if (b.follow && moved) setFocus.row += b.follow;
     save();
     renderRow();
-    renderSettings();
+    if (!searching) renderSettings();
   }
 
   function settingsKey(k) {
@@ -407,6 +510,125 @@
     resetIdle();
   }
 
+  // ---------- Weather location search ----------
+
+  var searching = false;
+  var results = [];
+  var searchFocus = -1;    // -1 = the text box, otherwise a result index
+  var searchInput = $('search-input');
+
+  function openSearch() {
+    searching = true;
+    results = [];
+    searchFocus = -1;
+    searchInput.value = '';
+    document.body.className += ' searching';
+    paintSearch();
+    // Focusing the box brings up the TV's on-screen keyboard.
+    setTimeout(function () { searchInput.focus(); }, 50);
+  }
+
+  function closeSearch() {
+    searching = false;
+    searchInput.blur();
+    document.body.className = document.body.className.replace(/\s*searching/g, '');
+    renderSettings();
+  }
+
+  function searchNote(text) {
+    results = [];
+    $('search-results').innerHTML = '';
+    var n = document.createElement('div');
+    n.className = 'result note';
+    n.textContent = text;
+    $('search-results').appendChild(n);
+  }
+
+  function runSearch() {
+    var q = searchInput.value.replace(/^\s+|\s+$/g, '');
+    if (!q) return;
+    searchInput.blur();
+    searchNote('Searching…');
+    var lang = (navigator.language || 'en').slice(0, 2);
+    Weather.search(q, lang, function (err, list) {
+      if (!searching) return;
+      if (err) {
+        searchNote('Could not reach the weather service. Check the TV\'s internet connection.');
+        searchFocus = -1;
+        searchInput.focus();
+        return;
+      }
+      if (!list.length) {
+        searchNote('No places found for "' + q + '". Try another spelling.');
+        searchFocus = -1;
+        searchInput.focus();
+        return;
+      }
+      results = list;
+      searchFocus = 0;
+      paintSearch();
+    });
+  }
+
+  function pickPlace(r) {
+    prefs.place = { name: r.name, latitude: r.latitude, longitude: r.longitude };
+    wxFailed = false;
+    save();
+    closeSearch();
+    refreshWeather(true);
+    toast('Weather set to ' + r.name);
+  }
+
+  function paintSearch() {
+    searchInput.className = searchFocus === -1 ? 'focused' : '';
+    if (!results.length) return;
+    var box = $('search-results');
+    box.innerHTML = '';
+    results.forEach(function (r, i) {
+      var el = document.createElement('div');
+      el.className = 'result' + (i === searchFocus ? ' focused' : '');
+      var name = document.createElement('div');
+      name.textContent = r.name;
+      var detail = document.createElement('div');
+      detail.className = 'detail';
+      detail.textContent = r.detail;
+      el.appendChild(name);
+      el.appendChild(detail);
+      el.addEventListener('mouseover', function () { searchFocus = i; searchInput.blur(); paintSearch(); });
+      el.addEventListener('click', function () { pickPlace(r); });
+      box.appendChild(el);
+    });
+  }
+
+  // Raw key codes on purpose: while typing, Backspace and letters must reach
+  // the text box instead of being treated as BACK or RED.
+  function searchKeydown(e) {
+    var k = e.keyCode;
+    var back = k === KEY.BACK || k === KEY.ESC;
+    if (document.activeElement === searchInput) {
+      if (k === KEY.ENTER) { e.preventDefault(); runSearch(); }
+      else if (back) { e.preventDefault(); closeSearch(); }
+      return;
+    }
+    if (back || k === KEY.BACKSPACE) { e.preventDefault(); closeSearch(); return; }
+    if (k === KEY.UP) {
+      e.preventDefault();
+      if (searchFocus > 0) searchFocus--;
+      else { searchFocus = -1; searchInput.focus(); }
+    } else if (k === KEY.DOWN) {
+      e.preventDefault();
+      if (searchFocus < results.length - 1) searchFocus++;
+    } else if (k === KEY.ENTER) {
+      e.preventDefault();
+      if (results[searchFocus]) pickPlace(results[searchFocus]);
+      else { searchFocus = -1; searchInput.focus(); }
+    }
+    paintSearch();
+  }
+
+  searchInput.addEventListener('focus', function () { searchFocus = -1; paintSearch(); });
+  searchInput.addEventListener('click', function () { searchInput.focus(); });
+
   // ---------- Toast ----------
 
   var toastTimer = null;
@@ -427,6 +649,7 @@
   }
 
   document.addEventListener('keydown', function (e) {
+    if (searching) { searchKeydown(e); return; }
     var k = normalize(e.keyCode);
     var handled = [KEY.LEFT, KEY.UP, KEY.RIGHT, KEY.DOWN, KEY.ENTER, KEY.BACK, KEY.RED].indexOf(k) !== -1;
     if (handled) e.preventDefault();
@@ -455,6 +678,7 @@
 
   // Pressing the CleanFrame icon again while it is running.
   document.addEventListener('webOSRelaunch', function () {
+    if (searching) closeSearch();
     if (view === 'settings') closeSettings();
     setAmbient(false);
   });
@@ -465,6 +689,7 @@
     } else {
       lastClock = '';
       tickClock();
+      refreshWeather(false);
       setAmbient(false);
     }
   });
@@ -477,4 +702,6 @@
   renderRow();
   resetIdle();
   discoverApps();
+  refreshWeather(false);
+  setInterval(function () { refreshWeather(false); }, 5 * 60000);
 })();

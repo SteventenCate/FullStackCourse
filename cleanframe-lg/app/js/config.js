@@ -36,6 +36,14 @@ var CLEANFRAME_CONFIG = {
   // landscape that follows the time of day.
   photos: [],
 
+  // Weather from Open-Meteo (free, no account). You can also pick the place
+  // on the TV: RED button > Weather location. Set it here to skip that step,
+  // e.g. { name: 'Amsterdam', latitude: 52.37, longitude: 4.89 }.
+  weather: {
+    place: null,
+    units: 'c'           // 'c' = Celsius, 'f' = Fahrenheit
+  },
+
   // Defaults for first launch. Changed values are remembered on the TV.
   defaults: {
     clock24: true,       // false = 12-hour clock
