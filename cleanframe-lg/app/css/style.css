@@ -1,0 +1,228 @@
+/*
+ * Laid out for the fixed 1920x1080 webOS app canvas. webOS 4.x ships
+ * Chromium 53, so this sticks to flexbox (no grid, no flex `gap`).
+ */
+:root {
+  --ink: #f5f3ef;
+  --ink-dim: rgba(245, 243, 239, 0.62);
+  --glass: rgba(18, 22, 28, 0.42);
+  --glass-strong: rgba(14, 17, 22, 0.94);
+  --ring: #ffffff;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #0b0d10;
+  color: var(--ink);
+  font-family: "LG Smart UI", "Museo Sans", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  cursor: default;
+}
+
+button { font: inherit; color: inherit; background: none; border: 0; outline: 0; }
+
+/* ---------- Background ---------- */
+
+#bg, .bg-layer, #scrim {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+#bg { overflow: hidden; }
+.bg-layer {
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 3s ease;
+  animation: drift 90s ease-in-out infinite alternate;
+}
+.bg-layer.on { opacity: 1; }
+@keyframes drift {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to   { transform: scale(1.09) translate3d(-1.5%, -1%, 0); }
+}
+#scrim {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0) 32%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+  transition: opacity 1.2s ease;
+}
+
+/* ---------- Home ---------- */
+
+#home {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  padding: 88px 112px 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: opacity .6s ease;
+}
+
+#top { display: flex; justify-content: space-between; align-items: flex-start; }
+
+#clock-wrap { text-shadow: 0 2px 24px rgba(0,0,0,0.35); }
+#clock {
+  font-size: 168px;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -2px;
+  transition: transform 1.2s var(--ease);
+  transform-origin: left top;
+}
+#clock-ampm { font-size: 48px; font-weight: 300; margin-left: 16px; letter-spacing: 1px; color: var(--ink-dim); }
+#date { margin-top: 18px; font-size: 40px; font-weight: 300; color: var(--ink-dim); }
+
+#gear {
+  width: 76px; height: 76px;
+  border-radius: 38px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-dim);
+  background: var(--glass);
+  transition: transform .2s var(--ease), background .2s, color .2s, box-shadow .2s;
+}
+
+#dock { transition: opacity .6s ease, transform .6s var(--ease); }
+#row-viewport { overflow: visible; height: 200px; }
+#row {
+  display: flex;
+  height: 200px;
+  align-items: center;
+  transition: transform .35s var(--ease);
+}
+
+.tile {
+  position: relative;
+  flex: 0 0 auto;
+  width: 212px;
+  height: 148px;
+  margin-right: 24px;
+  border-radius: 18px;
+  background: var(--glass);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 18px 20px;
+  transition: transform .2s var(--ease), box-shadow .2s, background .2s;
+}
+.tile .accent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  opacity: .9;
+}
+.tile .mono {
+  position: absolute;
+  top: 22px; left: 20px;
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  font-size: 28px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.tile .mono img { width: 52px; height: 52px; border-radius: 14px; }
+.tile .name { font-size: 28px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.focused.tile, .focused#gear {
+  background: rgba(255,255,255,0.94);
+  color: #111;
+  box-shadow: 0 0 0 4px var(--ring), 0 18px 48px rgba(0,0,0,0.45);
+}
+.focused.tile { transform: scale(1.12); }
+.focused#gear { transform: scale(1.1); }
+
+#hint {
+  margin-top: 20px;
+  font-size: 24px;
+  color: var(--ink-dim);
+  display: flex; align-items: center;
+}
+.key {
+  display: inline-block;
+  margin-right: 10px;
+  border-radius: 6px;
+  font-size: 16px; font-weight: 600; letter-spacing: 1px;
+}
+.key.red { width: 30px; height: 20px; background: #d6322f; }
+.key.back { padding: 2px 8px; border: 2px solid var(--ink-dim); }
+.sep { width: 36px; }
+
+/* ---------- Picture-only (ambient) ---------- */
+
+body.ambient #dock { opacity: 0; transform: translateY(40px); }
+body.ambient #gear { opacity: 0; }
+body.ambient #scrim { opacity: .45; }
+body.ambient #clock { transform: scale(.82); }
+body.ambient #date { opacity: .8; }
+
+/* ---------- Settings ---------- */
+
+#settings {
+  position: absolute;
+  top: 0; right: 0;
+  width: 800px; height: 100%;
+  padding: 72px 64px 48px;
+  background: var(--glass-strong);
+  transform: translate3d(100%, 0, 0);
+  transition: transform .35s var(--ease);
+  display: flex; flex-direction: column;
+}
+body.settings-open #settings { transform: translate3d(0, 0, 0); }
+body.settings-open #home { opacity: .35; }
+body.settings-open #gear { opacity: 0; }
+
+#settings h2 { font-size: 52px; font-weight: 300; margin-bottom: 28px; }
+#settings-list { flex: 1 1 auto; overflow: hidden; position: relative; }
+.s-head {
+  font-size: 22px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink-dim);
+  margin: 26px 0 10px;
+}
+.s-row {
+  display: flex; align-items: center;
+  height: 72px;
+  padding: 0 8px 0 20px;
+  border-radius: 12px;
+  font-size: 30px;
+}
+.s-row.dim .s-label { color: var(--ink-dim); }
+.s-row.current { background: rgba(255,255,255,0.07); }
+.s-label { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-btn {
+  min-width: 56px; height: 52px;
+  margin-left: 10px;
+  padding: 0 18px;
+  border-radius: 26px;
+  font-size: 26px;
+  background: rgba(255,255,255,0.08);
+  transition: background .15s, color .15s, transform .15s;
+}
+.s-btn.on { background: rgba(120, 200, 150, 0.28); }
+.s-btn.focused { background: #fff; color: #111; transform: scale(1.06); }
+.s-btn.disabled { opacity: .25; }
+.settings-foot { font-size: 22px; color: var(--ink-dim); margin-top: 20px; }
+
+/* ---------- Toast ---------- */
+
+#toast {
+  position: absolute;
+  left: 50%; bottom: 300px;
+  min-width: 360px;
+  padding: 20px 36px;
+  border-radius: 40px;
+  background: var(--glass-strong);
+  font-size: 28px;
+  text-align: center;
+  transform: translate3d(-50%, 20px, 0);
+  opacity: 0;
+  transition: opacity .25s, transform .25s var(--ease);
+  pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translate3d(-50%, 0, 0); }
